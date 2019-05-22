@@ -6,12 +6,14 @@ use App\Models\OrderEventModel;
 use App\Order\Events\OrderEvent;
 use App\Order\Events\OrderWasPlaced;
 use App\Order\Events\SellerMarkedAsDispatched;
+use App\Order\Events\SellerUpdatedTotal;
 
 class Order
 {
     private $id;
     private $buyerId;
     private $sellerId;
+    private $originalTotal;
     private $total;
     private $address;
     private $createdAt;
@@ -21,6 +23,7 @@ class Order
     private static $eventClasses = [
         OrderWasPlaced::class,
         SellerMarkedAsDispatched::class,
+        SellerUpdatedTotal::class,
     ];
 
     public static function create($buyerId, $sellerId, $total, $address)
@@ -49,6 +52,11 @@ class Order
     public function getId()
     {
         return $this->id;
+    }
+
+    public function getOriginalTotal()
+    {
+        return $this->originalTotal;
     }
 
     public function getTotal()
@@ -92,6 +100,12 @@ class Order
         $this->storeAndApplyEvent($event);
     }
 
+    public function sellerUpdatedTotal($amount)
+    {
+        $event = SellerUpdatedTotal::make($amount);
+        $this->storeAndApplyEvent($event);
+    }
+
     protected function storeAndApplyEvent(OrderEvent $event)
     {
         $this->storeEvent($event);
@@ -113,6 +127,7 @@ class Order
     {
         if ($event instanceof OrderWasPlaced) {
             $this->id = $event->getOrderId();
+            $this->originalTotal = $event->getTotal();
             $this->total = $event->getTotal();
             $this->buyerId = $event->getBuyerId();
             $this->sellerId = $event->getSellerId();
@@ -120,6 +135,8 @@ class Order
             $this->createdAt = $event->getTimestamp();
         } elseif ($event instanceof SellerMarkedAsDispatched) {
             $this->dispatchedAt = $event->getTimestamp();
+        } elseif ($event instanceof SellerUpdatedTotal) {
+            $this->total = $event->getTotal();
         }
 
         $this->updatedAt = $event->getTimestamp();

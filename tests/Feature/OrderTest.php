@@ -67,6 +67,17 @@ class OrderTest extends TestCase
         $this->assertCount(2, $orders);
     }
 
+    public function testGetOriginalTotal()
+    {
+        $order = $this->makeOrder();
+        $order->sellerUpdatedTotal(50);
+        $this->assertSame(50, $order->getTotal());
+        $this->assertSame(1000, $order->getOriginalTotal());
+
+        $mvOrder = MvOrder::find($order->getId());
+        $this->assertSame(50, $mvOrder->total);
+    }
+
     private function makeOrder($sellerId = null)
     {
         $buyerId = $this->newUserId();
